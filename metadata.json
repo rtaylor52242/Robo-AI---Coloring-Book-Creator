@@ -1,0 +1,5 @@
+{
+  "name": "Robo AI - Coloring Book Creator",
+  "description": "A creative app that uses Gemini to generate personalized children's coloring books from a theme. Includes a friendly chat bot for answering questions and a light/dark mode toggle.",
+  "requestFramePermissions": []
+}
