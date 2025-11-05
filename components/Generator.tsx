@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { generateColoringBookAssets } from '../services/geminiService';
-import { DownloadIcon, LoaderIcon, MagicWandIcon, HistoryIcon, LoadIcon, TrashIcon, ChevronDownIcon } from './Icons';
+import { DownloadIcon, MagicWandIcon, HistoryIcon, LoadIcon, TrashIcon, ChevronDownIcon } from './Icons';
 import Modal from './Modal';
 
 // @ts-ignore
@@ -42,6 +42,7 @@ const Generator: React.FC = () => {
     const [pageCount, setPageCount] = useState<number>(5);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [loadingMessage, setLoadingMessage] = useState<string>('');
+    const [progress, setProgress] = useState<number>(0);
     const [error, setError] = useState<string | null>(null);
     const [generatedAssets, setGeneratedAssets] = useState<{ coverImage: string, pages: string[] } | null>(null);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -73,16 +74,27 @@ const Generator: React.FC = () => {
         setGeneratedAssets(null);
         setPdfUrl(null);
         setLoadingMessage('Warming up the magic crayons...');
+        setProgress(0);
 
         try {
-            const assets = await generateColoringBookAssets(theme, name, pageCount, (message) => {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            setProgress(2); // Small initial progress
+
+            const assets = await generateColoringBookAssets(theme, name, pageCount, (message, percentage) => {
                 setLoadingMessage(message);
+                // Asset generation takes up to 90% of the bar
+                setProgress(2 + (percentage * 0.88));
             });
             setGeneratedAssets(assets);
 
             setLoadingMessage('Assembling your coloring book PDF...');
+            setProgress(95);
+            await new Promise(resolve => setTimeout(resolve, 500)); // Simulate PDF work
             createPdf(assets.coverImage, assets.pages, theme, name);
             
+            setProgress(100);
+            await new Promise(resolve => setTimeout(resolve, 500)); // Let user see 100%
+
             const newCreation: Creation = {
                 id: new Date().toISOString(),
                 theme,
@@ -103,6 +115,7 @@ const Generator: React.FC = () => {
         } finally {
             setIsLoading(false);
             setLoadingMessage('');
+            setProgress(0);
         }
     };
 
@@ -228,14 +241,33 @@ const Generator: React.FC = () => {
                     </div>
                 </div>
 
-                <button
-                    onClick={handleGenerate}
-                    disabled={isLoading}
-                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3 px-4 rounded-md hover:from-purple-700 hover:to-pink-700 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {isLoading ? <LoaderIcon /> : <MagicWandIcon />}
-                    {isLoading ? loadingMessage : 'Generate My Coloring Book'}
-                </button>
+                {isLoading ? (
+                    <div className="mt-2 text-center animate-fadeIn">
+                        <p className="font-semibold mb-2 text-gray-700 dark:text-gray-300">{loadingMessage}</p>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-5 overflow-hidden border border-gray-300 dark:border-gray-600 shadow-inner">
+                            <div
+                                className="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full transition-all duration-500 ease-out flex items-center justify-center text-xs font-bold text-white"
+                                style={{ width: `${progress}%` }}
+                                role="progressbar"
+                                aria-valuenow={progress}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-label="Generation progress"
+                            >
+                                {Math.round(progress) > 15 ? `${Math.round(progress)}%` : ''}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <button
+                        onClick={handleGenerate}
+                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3 px-4 rounded-md hover:from-purple-700 hover:to-pink-700 transition-transform transform hover:scale-105"
+                    >
+                        <MagicWandIcon />
+                        {'Generate My Coloring Book'}
+                    </button>
+                )}
+
 
                 {error && <p className="text-red-500 dark:text-red-400 mt-4 text-center">{error}</p>}
             </div>

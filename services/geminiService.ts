@@ -51,21 +51,23 @@ export const generateColoringBookAssets = async (
     theme: string, 
     name: string, 
     pageCount: number,
-    onProgress: (message: string) => void
+    onProgress: (message: string, percentage: number) => void
 ): Promise<{ coverImage: string, pages: string[] }> => {
+    const totalImageSteps = 1 + pageCount;
     const coverPrompt = `A beautiful coloring book cover page. It should say "${theme}" and "For ${name}". Style: simple vector art, thick bold black outlines, no color, no shading, clean lines, white background, kid-friendly.`;
     
     const pagePrompts = Array.from({ length: pageCount }, (_, i) => 
         `Coloring book page for a child. Theme: ${theme}. Scene ${i + 1}. Style: simple vector art, thick bold black outlines, no color, no shading, clean lines, white background, kid-friendly.`
     );
 
-    onProgress('Creating the cover page...');
+    onProgress('Creating the cover page...', (1 / totalImageSteps) * 100);
     const coverImage = await generateImage(coverPrompt);
     await delay(1000); // Add a 1-second delay to avoid hitting rate limits
 
     const pages: string[] = [];
     for (let i = 0; i < pagePrompts.length; i++) {
-        onProgress(`Drawing page ${i + 1} of ${pageCount}...`);
+        const currentStep = i + 2; // Cover was step 1
+        onProgress(`Drawing page ${i + 1} of ${pageCount}...`, (currentStep / totalImageSteps) * 100);
         const pageImage = await generateImage(pagePrompts[i]);
         pages.push(pageImage);
         if (i < pagePrompts.length - 1) { // Don't delay after the very last page
